@@ -1,0 +1,30 @@
+# Virtual environments
+heart-env/
+venv/
+env/
+.env
+
+# Python caches
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs and temp files
+*.log
+*.tmp
+
+# IDE / Editor
+.vscode/
+.idea/
+
+# Large or sensitive data (uncomment if you don't want data in repo)
+# data/
+# data/*.csv
