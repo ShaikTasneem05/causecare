@@ -1,0 +1,4 @@
+timestamp,estimator_label,method_name,ate,estimator_error
+20251024_164501,linear_regression,backdoor.linear_regression,-0.000505697992966625,
+20251024_164501,psm,backdoor.propensity_score_matching,,Propensity score methods are applicable only for binary treatments
+20251024_164501,ipw,backdoor.propensity_score_weighting,,Propensity score methods are applicable only for binary treatments
