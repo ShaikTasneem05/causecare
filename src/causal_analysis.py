@@ -1,4 +1,3 @@
-# causal_analysis.py
 import os
 import sys
 import json
@@ -14,7 +13,6 @@ except Exception as e:
     print("Error importing DoWhy. Install with: pip install dowhy")
     print("Exception:", e)
     sys.exit(1)
-
 
 def ensure_outputs_dir(path="outputs"):
     if not os.path.exists(path):
@@ -35,13 +33,8 @@ def quick_checks(df):
         print("\nCholesterol_unscaled stats:\n", df["Cholesterol_unscaled"].describe())
 
 def parse_refutation_text(txt):
-    """
-    Extract numeric new_effect and p_value from DoWhy refutation text output.
-    Returns (new_effect (float|None), p_value (float|None))
-    """
     if txt is None:
         return None, None
-    # often text contains: "New effect:XXX" and "p value:YYY"
     m_new = re.search(r"New effect: *([-\d.eE]+)", str(txt))
     m_p = re.search(r"p value: *([-\d.eE]+)", str(txt))
     new_effect = float(m_new.group(1)) if m_new else None
@@ -66,19 +59,10 @@ def bootstrap_ate(df, treatment, outcome, common_causes, n_boot=200):
     return mean, lower, upper
 
 def run_analysis(df, outputs_dir, treatment_col="Cholesterol_unscaled", use_binary=False):
-    """
-    Run DoWhy causal analysis on dataframe `df`.
-    - outputs_dir: path (string) where CSV/JSON will be saved
-    - treatment_col: column name for treatment (continuous or pre-created binary)
-    - use_binary: if True, create 'high_cholesterol' (median split) and run PSM/IPW too
-    Returns: identified, results dict
-    """
-    # Choose treatment column and prepare binary if requested
     if treatment_col not in df.columns and not use_binary:
         raise ValueError(f"Treatment column {treatment_col} not found in dataframe.")
 
     if use_binary:
-        # create binary treatment using median threshold (you can change to clinical threshold)
         binary_col = "high_cholesterol"
         if binary_col not in df.columns:
             df[binary_col] = (df["Cholesterol_unscaled"] >= df["Cholesterol_unscaled"].median()).astype(int)
@@ -89,7 +73,8 @@ def run_analysis(df, outputs_dir, treatment_col="Cholesterol_unscaled", use_bina
         print(f"Using continuous treatment: {treatment}")
 
     outcome = "HeartDisease"
-    common_causes = ["Age","Sex","RestingBP","FastingBS","MaxHR","ExerciseAngina","Oldpeak","ChestPainType","RestingECG","ST_Slope"]
+    common_causes = ["Age", "Sex", "RestingBP", "FastingBS", "MaxHR", "ExerciseAngina", "Oldpeak",
+                     "ChestPainType", "RestingECG", "ST_Slope"]
     common_causes = [c for c in common_causes if c in df.columns]
 
     print("\nUsing common_causes:", common_causes)
@@ -102,16 +87,12 @@ def run_analysis(df, outputs_dir, treatment_col="Cholesterol_unscaled", use_bina
     results = {}
     estimator_objects = {}
 
-    # Only run PSM/IPW if treatment is binary
-    estimators_continuous = {
-        "backdoor.linear_regression": "linear_regression"
-    }
+    estimators_continuous = {"backdoor.linear_regression": "linear_regression"}
     estimators_binary_extra = {
         "backdoor.propensity_score_matching": "psm",
         "backdoor.propensity_score_weighting": "ipw"
     }
 
-    # merge dicts depending on treatment type
     estimators = estimators_continuous.copy()
     if use_binary:
         estimators.update(estimators_binary_extra)
@@ -133,7 +114,6 @@ def run_analysis(df, outputs_dir, treatment_col="Cholesterol_unscaled", use_bina
             results[label] = {"method_name": method_name, "error": str(e)}
             estimator_objects[label] = None
 
-    # Add bootstrap CI for linear_regression (if it ran)
     if estimator_objects.get("linear_regression") is not None:
         print("\nComputing bootstrap CI for linear_regression (this may take a bit)...")
         try:
@@ -144,17 +124,12 @@ def run_analysis(df, outputs_dir, treatment_col="Cholesterol_unscaled", use_bina
         except Exception as e:
             print("Bootstrap failed:", e)
 
-    # Refutations
-    refutation_methods = [
-        "random_common_cause",
-        "placebo_treatment_refuter",
-        "data_subset_refuter"
-    ]
+    refutation_methods = ["random_common_cause", "placebo_treatment_refuter", "data_subset_refuter"]
 
     for label, est_info in list(results.items()):
         est_obj = estimator_objects.get(label)
         if est_obj is None:
-            print(f"\nSkipping refutations for {label} (estimator object not available).")
+            print(f"\nSkipping refutations for {label}.")
             continue
 
         results[label]["refutations"] = {}
@@ -162,10 +137,8 @@ def run_analysis(df, outputs_dir, treatment_col="Cholesterol_unscaled", use_bina
             print(f"\nRunning refutation '{ref_method}' for estimator {label} ...")
             try:
                 ref = model.refute_estimate(identified, est_obj, method_name=ref_method)
-                # parse textual refutation (extract numeric fields where available)
-                ref_text = str(ref)  # text blob
+                ref_text = str(ref)
                 new_effect, p_value = parse_refutation_text(ref_text)
-                # try to also get attributes directly if present
                 ref_dict = {
                     "refuter": ref_method,
                     "refutation_string": ref_text,
@@ -215,19 +188,14 @@ def save_results(outputs_dir, identified, encoded_info, results):
 
     return csv_path, json_path
 
-# --- New convenience function so other scripts can import this module ---
 def run_file_pipeline(cleaned_csv_path="../data/heart_cleaned.csv", outputs_dir="outputs",
                       treatment_col="Cholesterol_unscaled", use_binary=False):
-    """
-    Run the full pipeline from cleaned CSV to saved outputs.
-    Returns: (csv_path, json_path)
-    """
     outputs_dir = ensure_outputs_dir(outputs_dir)
     df = load_cleaned(cleaned_csv_path)
     quick_checks(df)
 
-    # minimal encoding if needed
-    object_cols = [c for c in ["Sex","ChestPainType","RestingECG","ExerciseAngina","ST_Slope"] if c in df.columns and df[c].dtype == object]
+    object_cols = [c for c in ["Sex", "ChestPainType", "RestingECG", "ExerciseAngina", "ST_Slope"]
+                   if c in df.columns and df[c].dtype == object]
     encoded_info = {}
     if object_cols:
         from sklearn.preprocessing import LabelEncoder
@@ -241,12 +209,7 @@ def run_file_pipeline(cleaned_csv_path="../data/heart_cleaned.csv", outputs_dir=
     return csv_path, json_path
 
 def main():
-    # Default behavior: read ../data/heart_cleaned.csv, write to src/outputs/, use unscaled continuous treatment.
-    outputs_dir = ensure_outputs_dir("outputs")  # this 'outputs' is inside src/
-
-    # CLI support for simple flags:
-    # --binary to run binary treatment (creates high_cholesterol and runs PSM/IPW)
-    # --treatment <colname> to specify treatment column
+    outputs_dir = ensure_outputs_dir("outputs")
     use_binary = False
     treatment_col = "Cholesterol_unscaled"
     args = sys.argv[1:]
@@ -259,8 +222,6 @@ def main():
 
     identified, results = run_analysis(load_cleaned("../data/heart_cleaned.csv"), outputs_dir,
                                        treatment_col=treatment_col, use_binary=use_binary)
-
-    # minimal encoded_info detection for saving
     encoded_info = {}
     csv_path, json_path = save_results(outputs_dir, identified, encoded_info, results)
 

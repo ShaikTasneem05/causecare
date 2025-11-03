@@ -1,10 +1,8 @@
-# data_processing.py
 import pandas as pd
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 from pathlib import Path
 import sys
 
-# If running from src/, the raw file is at ../data/heart.csv
 in_path = Path("../data/heart.csv")
 out_clean_path = Path("../data/heart_cleaned.csv")
 
@@ -36,7 +34,6 @@ def run_processing(in_path=in_path, out_clean_path=out_clean_path):
     print("\nAfter encoding:")
     print(data.head())
 
-    # === KEEP AN UNSCALED COPY OF CHOLESTEROL FOR INTERPRETATION ===
     if "Cholesterol" in data.columns:
         data["Cholesterol_unscaled"] = data["Cholesterol"].copy()
         print("\nSaved Cholesterol_unscaled (unscaled copy).")
@@ -44,8 +41,6 @@ def run_processing(in_path=in_path, out_clean_path=out_clean_path):
     scaler = StandardScaler()
 
     numeric_cols = data.select_dtypes(include=['int64', 'float64']).columns
-    # scale numeric columns but leave the unscaled copy intact
-    # (StandardScaler will overwrite the numeric cols; that's why we kept the copy)
     data[numeric_cols] = scaler.fit_transform(data[numeric_cols])
 
     print("\nAfter scaling (note: Cholesterol_unscaled preserved):")
@@ -62,7 +57,6 @@ def run_processing(in_path=in_path, out_clean_path=out_clean_path):
     print(f"\nCleaned dataset saved successfully to {out_clean_path}")
 
 if __name__ == "__main__":
-    # support optional custom input/output via CLI (rarely needed)
     args = sys.argv[1:]
     inp = in_path
     outp = out_clean_path

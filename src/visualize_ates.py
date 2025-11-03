@@ -1,12 +1,3 @@
-# visualize_ates.py
-"""
-Visualize ATE estimates and CIs from your latest causal_results_full_*.json
-Place this file in src/ and run from the src/ folder:
-    python visualize_ates.py
-Or pass a specific json:
-    python visualize_ates.py ../src/outputs/causal_results_full_20251103_032757.json
-"""
-
 import json
 from pathlib import Path
 import sys
@@ -35,7 +26,6 @@ def load_results(json_path: Path):
     for est_label, est_info in results.items():
         ate = est_info.get("ate")
         ci = est_info.get("ci")
-        # parse refutation p-values (placebo if present)
         p_placebo = None
         refuts = est_info.get("refutations", {})
         if isinstance(refuts, dict):
@@ -77,7 +67,6 @@ def prepare_plot_data(parsed):
 def make_plot(labels, ates, errors, pvals, out_path: Path, title=None):
     x = np.arange(len(labels))
     fig, ax = plt.subplots(figsize=(max(6, len(labels)*1.6), 5))
-    # matplotlib default colors are used (do not set colors)
     yerr = errors
     ax.bar(x, ates, yerr=yerr, capsize=6)
     ax.axhline(0, color='gray', linewidth=0.8, linestyle='--')
@@ -89,7 +78,6 @@ def make_plot(labels, ates, errors, pvals, out_path: Path, title=None):
     else:
         ax.set_title("ATE estimates by estimator (with CI / bootstrap if available)")
 
-    # annotate ATE values above bars and placebo p-values below
     for i, (val, p) in enumerate(zip(ates, pvals)):
         ax.text(i, val + (errors[1][i] * 0.6 if errors is not None else 0.01),
                 f"{val:.4f}", ha='center', va='bottom', fontsize=9)
@@ -111,7 +99,6 @@ def print_console_summary(labels, ates, errors, pvals, ts):
         print(f"- {l}: ATE={a:.6f}, CI≈[{low_val:.6f}, {high_val:.6f}], placebo_p={p}")
 
 def main():
-    # determine json source
     args = sys.argv[1:]
     json_path = None
     if args:

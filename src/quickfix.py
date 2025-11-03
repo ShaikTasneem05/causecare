@@ -1,12 +1,3 @@
-# quick_fix_and_run.py
-"""
-Quick auto-fix + causal run.
-Place in src/ and run from src/ (venv active).
-Reads ../data/heart_cleaned.csv, fixes common problems (unscaled cholesterol,
-binary treatment), runs continuous and binary causal analyses, saves outputs
-to src/outputs/.
-"""
-
 import os
 import json
 import re
@@ -19,7 +10,6 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-# Try imports for dowhy / sklearn, else instruct user
 try:
     from dowhy import CausalModel
 except Exception as e:
@@ -44,14 +34,11 @@ def load_df():
     return df
 
 def ensure_heartdisease_binary(df):
-    # Convert common encodings to 0/1
     if "HeartDisease" not in df.columns:
         raise KeyError("HeartDisease column missing in cleaned data.")
     vals = pd.unique(df["HeartDisease"].dropna())
-    # If values look like strings, try to map
     if df["HeartDisease"].dtype == object:
         mapping = {}
-        # common possibilities: 'Yes'/'No', 'Y'/'N', 'Present'/'Absent'
         for v in vals:
             s = str(v).strip().lower()
             if s in ("yes","y","present","1","true","t"):
@@ -61,44 +48,34 @@ def ensure_heartdisease_binary(df):
         if mapping:
             df["HeartDisease"] = df["HeartDisease"].map(mapping).astype(int)
         else:
-            # try factorize and map the most frequent to 1 (less ideal)
             fac, uniq = pd.factorize(df["HeartDisease"])
-            # assume the label with highest mean of other risk features corresponds to disease; fallback: map first->0 second->1
             if len(uniq) == 2:
                 df["HeartDisease"] = fac
             else:
                 raise ValueError("Could not automatically convert HeartDisease to binary. Values: " + str(uniq))
     else:
-        # numeric: if values not 0/1, try to normalize (e.g., 1/2 -> 0/1)
         unique_vals = sorted(pd.unique(df["HeartDisease"].dropna()))
         if set(unique_vals) <= {0,1}:
             df["HeartDisease"] = df["HeartDisease"].astype(int)
         else:
-            # If values are like 1 and 2, map max->1 min->0
             if len(unique_vals) == 2:
                 mapping = {unique_vals[0]:0, unique_vals[1]:1}
                 df["HeartDisease"] = df["HeartDisease"].map(mapping).astype(int)
             else:
-                # try threshold at median
                 df["HeartDisease"] = (df["HeartDisease"] > df["HeartDisease"].median()).astype(int)
     return df
 
 def ensure_cholesterol_unscaled(df):
-    # If Cholesterol_unscaled exists and looks reasonable, keep it.
     if "Cholesterol_unscaled" in df.columns:
         s = df["Cholesterol_unscaled"].dropna()
         if s.empty:
-            # fallback to Cholesterol column
             if "Cholesterol" in df.columns:
                 df["Cholesterol_unscaled"] = df["Cholesterol"].copy()
         else:
-            # sanity check range
-            if (s.min() < 0) or (s.mean() < 10):  # suspicious small numbers
-                # fallback to Cholesterol column if exists
+            if (s.min() < 0) or (s.mean() < 10):  
                 if "Cholesterol" in df.columns:
                     df["Cholesterol_unscaled"] = df["Cholesterol"].copy()
     else:
-        # try to create from Cholesterol
         if "Cholesterol" in df.columns:
             df["Cholesterol_unscaled"] = df["Cholesterol"].copy()
         else:
@@ -106,7 +83,6 @@ def ensure_cholesterol_unscaled(df):
     return df
 
 def choose_threshold(df):
-    # Choose clinical threshold 240 if data mean seems like mg/dL (50 < mean < 500)
     mean_ch = df["Cholesterol_unscaled"].dropna().mean()
     if 50 < mean_ch < 500:
         threshold = 240
@@ -121,7 +97,6 @@ def make_binary_treatment(df, threshold):
     return df
 
 def quick_predictive_check(df):
-    # simple logistic on Cholesterol_unscaled
     X = df[["Cholesterol_unscaled"]].copy().fillna(df["Cholesterol_unscaled"].median()).values.reshape(-1,1)
     y = df["HeartDisease"].values
     try:
@@ -133,7 +108,6 @@ def quick_predictive_check(df):
     except Exception as e:
         return {"error": str(e)}
 
-# helper parse refutation text
 def parse_refutation_text(txt):
     m_new = re.search(r"New effect: *([-\d.eE]+)", str(txt))
     m_p = re.search(r"p value: *([-\d.eE]+)", str(txt))
@@ -141,7 +115,6 @@ def parse_refutation_text(txt):
     p_value = float(m_p.group(1)) if m_p else None
     return new_effect, p_value
 
-# simple bootstrap for linear regression ATE
 def bootstrap_ate(df, treatment, outcome, confounders, n_boot=200):
     ates = []
     for i in range(n_boot):
@@ -167,7 +140,6 @@ def run_single_analysis(df, treatment_col, outputs_dir, use_binary=False):
     model = CausalModel(data=df, treatment=treatment_col, outcome=outcome, common_causes=common_causes)
     identified = model.identify_effect()
 
-    # choose estimators
     estimators = {"backdoor.linear_regression":"linear_regression"}
     if use_binary:
         estimators.update({
@@ -191,7 +163,6 @@ def run_single_analysis(df, treatment_col, outputs_dir, use_binary=False):
             results[label] = {"method_name": method_name, "error": str(e)}
             estimator_objs[label] = None
 
-    # bootstrap only for linear_regression if it succeeded
     if estimator_objs.get("linear_regression") is not None:
         try:
             mean, lo, hi = bootstrap_ate(df, treatment_col, outcome, common_causes, n_boot=150)
@@ -200,7 +171,6 @@ def run_single_analysis(df, treatment_col, outputs_dir, use_binary=False):
         except Exception as e:
             results["linear_regression"]["ci_error"] = str(e)
 
-    # refutations
     ref_methods = ["random_common_cause","placebo_treatment_refuter","data_subset_refuter"]
     for label, obj in estimator_objs.items():
         if obj is None:
@@ -230,11 +200,9 @@ def save_outputs(prefix, identified, results, encoded_info=None):
         "results": results,
         "encoded_info": encoded_info or {}
     }
-    # file names
     json_path = OUTDIR / f"causal_results_full_{prefix}_{ts}.json"
     csv_path = OUTDIR / f"causal_results_summary_{prefix}_{ts}.csv"
 
-    # save structured csv summary (one row per estimator)
     rows = []
     for label, info in results.items():
         row = {
@@ -259,7 +227,6 @@ def save_outputs(prefix, identified, results, encoded_info=None):
     return str(json_path), str(csv_path)
 
 def make_simple_plots(df, prefix):
-    # HeartDisease rate by cholesterol bins
     try:
         df2 = df.dropna(subset=["Cholesterol_unscaled","HeartDisease"]).copy()
         df2["chol_bin"] = pd.cut(df2["Cholesterol_unscaled"], bins=10)
@@ -317,7 +284,6 @@ def main():
     plotb = make_simple_plots(df, "binary")
     print("Saved binary plot:", plotb)
 
-    # 7) Create a simple human-readable summary
     summary_lines = []
     summary_lines.append("# Quick Causal Run Summary")
     summary_lines.append("Generated: " + datetime.now().isoformat())
