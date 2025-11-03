@@ -1,0 +1,4 @@
+prefix,timestamp,estimator_label,method_name,ate,ci_lower,ci_upper,error
+binary,20251103_032757,linear_regression,backdoor.linear_regression,-0.03187917264571549,-0.07482095371848987,0.013802333908441248,
+binary,20251103_032757,psm,backdoor.propensity_score_matching,-0.042483660130718956,,,
+binary,20251103_032757,ipw,backdoor.propensity_score_weighting,-0.03630411582688775,,,

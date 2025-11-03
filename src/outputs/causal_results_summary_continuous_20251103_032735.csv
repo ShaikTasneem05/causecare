@@ -1,0 +1,2 @@
+prefix,timestamp,estimator_label,method_name,ate,ci_lower,ci_upper,error
+continuous,20251103_032735,linear_regression,backdoor.linear_regression,-0.05528520597099512,-0.08133385963483689,-0.02905194740883847,
