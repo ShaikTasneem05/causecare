@@ -1,21 +1,21 @@
-# ❤️ Heart Disease Predictive & Causal Analysis
+#  Heart Disease Predictive & Causal Analysis
 
 This project combines **Machine Learning** and **Causal Inference** to analyze and predict heart disease risk.
 It estimates the **causal impact of cholesterol levels** on heart disease and builds predictive models to classify patients based on medical attributes.
 
-## 🎯 Objectives
+##  Objectives
 
 - Understand the causal relationship between **cholesterol** and **heart disease** using the `DoWhy` library.
 - Estimate the **Average Treatment Effect (ATE)** and validate it through refutation tests.
 - Build and evaluate predictive models (`Logistic Regression`, `Random Forest`) to classify heart disease.
 - Visualize correlations, causal graphs, and model results.
 
-## 🚀 Live Demo  
+##  Live Demo  
 Try the app here 👉 [Heart Disease Causal Analysis App](https://causecare-fdgclkwrefbep4dnwneguf.streamlit.app/)
 
 Below are sample numeric inputs you can use to test the model:
 
-### 🩺 Example 1 (Lower Risk)
+###  Example 1 (Lower Risk)
 | Feature | Value |
 |----------|--------|
 | Age | 45 |
@@ -36,7 +36,7 @@ Below are sample numeric inputs you can use to test the model:
 
 ---
 
-### ❤️ Example 2 (Higher Risk)
+###  Example 2 (Higher Risk)
 | Feature | Value |
 |----------|--------|
 | Age | 58 |
@@ -56,7 +56,7 @@ Below are sample numeric inputs you can use to test the model:
 **p-value:** 0.98  
 
 
-## 📁 Project Structure
+##  Project Structure
 project/
 │
 ├── data/
@@ -83,12 +83,12 @@ project/
 ├── .gitignore # Files/folders to ignore on GitHub (like heart-env/)
 └── README.md # Project documentation
 
-## 📊 Results Summary
+##  Results Summary
 - **Causal Finding:** Cholesterol showed a weak and statistically insignificant causal effect on heart disease (ATE ≈ -0.0424, p ≈ 0.98).  
-- **Best Predictive Model:** Random Forest (Accuracy ≈ 0.89, ROC-AUC ≈ 0.94).  
+- **Best Predictive Model:** Random Forest.  
 - **Interpretation:** While cholesterol alone isn’t a strong causal driver, models indicate it still helps improve predictive accuracy when combined with other features.
 
-## 🧠 Tech Stack
+##  Tech Stack
 - **Languages:** Python  
 - **Libraries:** pandas, numpy, scikit-learn, dowhy, matplotlib, streamlit  
 - **ML Models:** Logistic Regression, Random Forest  
