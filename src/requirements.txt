@@ -6,3 +6,4 @@ joblib
 dowhy
 matplotlib
 seaborn
+plotly
